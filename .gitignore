@@ -6,3 +6,6 @@
 /swarmFlood/*.csproj
 /swarmFlood/*.sln
 /swarmFlood/*.userprefs
+/swarmFlood/obj
+
+/swarmFlood/*.suo
