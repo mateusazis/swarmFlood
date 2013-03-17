@@ -18,17 +18,27 @@ class RobotMovement : MonoBehaviour
 
     void Update()
     {
-        if (state == State.IDLE)
-        {
-            if (Input.GetMouseButtonDown(0))
-            {
-                Vector3 dest = RandomTerrainPosition();
-                print("Moving to " + dest);
-                MoveTo(dest);
-                //MoveTo(Vector3.zero);
-            }
-        }
+        //if (state == State.IDLE)
+        //{
+        //    if (Input.GetMouseButtonDown(0))
+        //    {
+        //        Vector3 dest = RandomTerrainPosition();
+        //        //print("Moving to " + dest);
+        //        MoveTo(dest);
+        //        //MoveTo(Vector3.zero);
+        //    }
+        //}
         //print(t.SampleHeight(transform.position));
+    }
+
+    public Vector3 position
+    {
+        set{
+            float destHeight = t.SampleHeight(value);
+            destHeight += collider.bounds.extents.y;
+            value.y = destHeight;
+            transform.position = value;
+        }
     }
 
     public Vector3 RandomTerrainPosition()
