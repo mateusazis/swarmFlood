@@ -4,32 +4,20 @@ class RobotMovement : MonoBehaviour
 {
     public Terrain t;
     public float duration = 3f;
+    public SwarmController controller;
+    public GameObject markerPrefab = null;
+    private GameObject currentMarker;
 
-    private TerrainData data;
-
-    private enum State { IDLE, MOVING }
+    private enum State { IDLE, SEARCHING_BEST, ESCAPING }
     private State state = State.IDLE;
 
-    void Start()
-    {
-        data = t.terrainData;
-        
-    }
+    //IA
+    private Vector3 particleBest;
+    //começar com uma posição que sempre perderá (altura negativa)
+    private Vector3 velocity = new Vector3(0, -1, 0);
+    private const float LEARNING_FACTOR_1 = 2, LEARNING_FACTOR_2 = 2;
 
-    void Update()
-    {
-        //if (state == State.IDLE)
-        //{
-        //    if (Input.GetMouseButtonDown(0))
-        //    {
-        //        Vector3 dest = RandomTerrainPosition();
-        //        //print("Moving to " + dest);
-        //        MoveTo(dest);
-        //        //MoveTo(Vector3.zero);
-        //    }
-        //}
-        //print(t.SampleHeight(transform.position));
-    }
+    public float maxSpeed = 10;
 
     public Vector3 position
     {
@@ -41,6 +29,14 @@ class RobotMovement : MonoBehaviour
         }
     }
 
+    public static Vector3 PositionAtTerrain(Vector3 position, GameObject obj, Terrain t)
+    {
+        float destHeight = t.SampleHeight(position);
+        destHeight += obj.collider.bounds.extents.y;
+        position.y = destHeight;
+        return position;
+    }
+
     public Vector3 RandomTerrainPosition()
     {
         Bounds terrainBounds = t.collider.bounds;
@@ -48,28 +44,87 @@ class RobotMovement : MonoBehaviour
         return new Vector3(Random.Range(tMin.x, tMax.x), 0, Random.Range(tMin.z, tMax.z));
     }
 
-    //public void setPosition(Vector3 pos, Terrain t)
-    //{
-    //    float destHeight = t.SampleHeight(pos);
-    //    destHeight += collider.bounds.extents.y;
-    //    pos.y = destHeight;
-    //    transform.position = pos;
-    //}
-
     void OnInterpolationStep(Vector3 current, float pctg)
     {
-        transform.position = current;
-        if (pctg == 1.0f)
-            state = State.IDLE;
+        position = current;
+        if (state != State.ESCAPING)
+        {
+            bool rainStarted = controller.c.state == Cloud.State.RAINING;
+            if (rainStarted)
+            {
+                RemoveMarker();
+                MoveTo(controller.GlobalBest);
+                state = State.ESCAPING;
+            }
+            else if (pctg == 1.0f)
+            {
+                RemoveMarker();
+                ComputePosition();
+                MoveNext();
+            }
+        }
+        
     }
 
     void MoveTo(Vector3 destiny)
     {
-        state = State.MOVING;
+        state = State.SEARCHING_BEST;
         float destHeight = t.SampleHeight(destiny);
         destHeight += collider.bounds.extents.y;
         destiny.y = destHeight;
+
         Interpolator.Interpolate(transform.position, destiny, duration, OnInterpolationStep);
     }
 
+    public void StartSurvivalRoutine()
+    {
+        ComputePosition();
+        MoveNext();
+    }
+
+    private void ComputePosition()
+    {
+        Vector3 current = transform.position;
+        if (SwarmController.PositionBeats(current, particleBest))
+            particleBest = current;
+        if (controller.BeatsGlobalBest(particleBest))
+            controller.GlobalBest = particleBest;
+    }
+
+    private void MoveNext()
+    {
+        Vector3 present = transform.position;
+
+        //v[] = v[] + c1 * rand() * (pbest[] - present[]) + c2 * rand() * (gbest[] - present[]) (a)
+        //present[] = persent[] + v[] (b)
+
+        velocity = velocity + LEARNING_FACTOR_1 * Random.Range(0, 1.0f) * (particleBest - present) +
+            LEARNING_FACTOR_2 * Random.Range(0, 1.0f) * (controller.GlobalBest - present);
+
+        //truncar a velocidade se for muito grande
+        if (velocity.magnitude > maxSpeed)
+            velocity = velocity.normalized * maxSpeed;
+
+        present = present + velocity;
+
+        Vector3 heightenedDest = PositionAtTerrain(present, gameObject, t);
+        currentMarker = Instantiate(markerPrefab, heightenedDest, markerPrefab.transform.rotation) as GameObject;
+
+        MoveTo(present);
+    }
+
+    private void RemoveMarker()
+    {
+        if (currentMarker)
+        {
+            Destroy(currentMarker);
+            currentMarker = null;
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, maxSpeed);
+    }
 }

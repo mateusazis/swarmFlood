@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-class Interpolator : MonoBehaviour
+public class Interpolator : MonoBehaviour
 {
     public delegate void VectorInterpolationStep(Vector3 currentVector, float percentage);
     public delegate void QuaternionInterpolationStep(Quaternion currentVector, float percentage);
