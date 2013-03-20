@@ -3,7 +3,7 @@
 class RobotMovement : MonoBehaviour
 {
     public Terrain t;
-    public float duration = 3f;
+    public float duration = 1.5f;
     public SwarmController controller;
     public GameObject markerPrefab = null;
     private GameObject currentMarker;

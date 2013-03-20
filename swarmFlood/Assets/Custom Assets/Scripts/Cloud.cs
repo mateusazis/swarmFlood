@@ -56,7 +56,7 @@ public class Cloud : MonoBehaviour
             int w = 100;
             int h = 50;
             Rect r = new Rect(screenWidth - w, 0, w, h);
-            GUI.Label(r, "Seconds until rain: " + string.Format("{0:0.00}", secsToRain));       
+            GUI.Label(r, "Seconds until rain: " + string.Format("{0:0.00}", secsToRain) + "s");       
         }
     }
 }

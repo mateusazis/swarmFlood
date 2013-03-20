@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class SwarmController : MonoBehaviour
 {
     //constants
-    private const float MIN_FLOOD_HEIGHT = 0, MAX_FLOOD_HEIGHT = 40, WATER_RAISE_DURATION = 5f,
+    private const float MIN_FLOOD_HEIGHT = 0, MAX_FLOOD_HEIGHT = 40,
         MIN_STORM_DELAY = 5, MAX_STORM_DELAY = 15;
 
     public float floodHeight = MIN_FLOOD_HEIGHT;
@@ -18,10 +18,13 @@ public class SwarmController : MonoBehaviour
     public Cloud c;
     public Water water;
     public GameObject waterDummy;
+    public GUIText resultText = null;
 
     public GameObject bestMarker;
 
-    private bool robotsCreated = false;
+    private bool robotsCreated = false, showingResult = false;
+
+    public bool operationSuccessful = true;
 
     private Vector3 best;
     private List<RobotMovement> robots = new List<RobotMovement>();
@@ -30,6 +33,8 @@ public class SwarmController : MonoBehaviour
     {
         if (c.state == Cloud.State.IDLE)
             SetWaterHeight(floodHeight);
+        if (showingResult && Input.GetKeyDown(KeyCode.Escape))
+            Application.Quit();
     }
 
     void OnGUI()
@@ -42,19 +47,22 @@ public class SwarmController : MonoBehaviour
                 SpawnRobots();
         }
 
-        string formatedHeight = string.Format("{0:0.00}", floodHeight);
-        GUI.Label(new Rect(0, 100, 100, 50), "Flood height (" + formatedHeight + "):");
-        floodHeight = GUI.HorizontalSlider(new Rect(100, 100, 100, 50), floodHeight, MIN_FLOOD_HEIGHT, MAX_FLOOD_HEIGHT);
-
-        if (GUI.Button(new Rect(0, 150, 100, 50), "Bring storm"))
+        if (c.state == Cloud.State.IDLE && robotsCreated)
         {
-            Destroy(waterDummy);
-            c.BringStorm(spawnRange.transform.position, stormDelay);
-            StartParticleSwarm();
+            string formatedHeight = string.Format("{0:0.00}", floodHeight);
+            GUI.Label(new Rect(0, 100, 100, 50), "Flood height (" + formatedHeight + "):");
+            floodHeight = GUI.HorizontalSlider(new Rect(100, 100, 100, 50), floodHeight, MIN_FLOOD_HEIGHT, MAX_FLOOD_HEIGHT);
+
+            if (GUI.Button(new Rect(0, 150, 100, 50), "Bring storm"))
+            {
+                Destroy(waterDummy);
+                c.BringStorm(spawnRange.transform.position, stormDelay);
+                StartParticleSwarm();
+            }
+            string formatedDelay = string.Format("{0:0.00}", stormDelay);
+            GUI.Label(new Rect(0, 200, 100, 50), "Storm delay (" + formatedDelay + "s):");
+            stormDelay = GUI.HorizontalSlider(new Rect(100, 200, 100, 50), stormDelay, MIN_STORM_DELAY, MAX_STORM_DELAY);
         }
-        string formatedDelay = string.Format("{0:0.00}", stormDelay);
-        GUI.Label(new Rect(0, 200, 100, 50), "Storm delay (" + formatedDelay + "):");
-        stormDelay = GUI.HorizontalSlider(new Rect(100, 200, 100, 50), stormDelay, MIN_STORM_DELAY, MAX_STORM_DELAY);
     }
 
     private void SetWaterHeight(float y)
@@ -91,7 +99,7 @@ public class SwarmController : MonoBehaviour
 
     public void RaiseWater()
     {
-        water.Raise(floodHeight, WATER_RAISE_DURATION);
+        water.Raise(floodHeight);
     }
 
     public Vector3 GlobalBest
@@ -126,5 +134,13 @@ public class SwarmController : MonoBehaviour
     public static bool PositionBeats(Vector3 candidate, Vector3 best)
     {
         return candidate.y > best.y;
+    }
+
+    public void ShowFinalResult()
+    {
+        resultText.text = operationSuccessful ? "All the robots have been saved!" : "Failure: the robots where jammed!";
+        resultText.text += "\nPress ESC to quit";
+        resultText.gameObject.SetActive(true);
+        showingResult = true;
     }
 }
