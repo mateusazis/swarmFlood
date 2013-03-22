@@ -7,6 +7,8 @@ class RobotMovement : MonoBehaviour
     public SwarmController controller;
     public GameObject markerPrefab = null;
     private GameObject currentMarker;
+    public GameObject exclamation = null;
+    public GameObject thinking = null;
 
     private enum State { IDLE, SEARCHING_BEST, ESCAPING }
     private State state = State.IDLE;
@@ -47,22 +49,28 @@ class RobotMovement : MonoBehaviour
     void OnInterpolationStep(Vector3 current, float pctg)
     {
         position = current;
+        bool reachedDestiny = pctg == 1.0f;
+
         if (state != State.ESCAPING)
         {
             bool rainStarted = controller.c.state == Cloud.State.RAINING;
             if (rainStarted)
             {
+                exclamation.SetActive(true);
+                thinking.SetActive(false);
                 RemoveMarker();
                 MoveTo(controller.GlobalBest);
                 state = State.ESCAPING;
             }
-            else if (pctg == 1.0f)
+            else if (reachedDestiny)
             {
                 RemoveMarker();
                 ComputePosition();
                 MoveNext();
             }
         }
+        if (state == State.ESCAPING && reachedDestiny)
+            exclamation.SetActive(false);
         
     }
 
@@ -78,17 +86,31 @@ class RobotMovement : MonoBehaviour
 
     public void StartSurvivalRoutine()
     {
-        ComputePosition();
+        thinking.SetActive(true);
+        if (ComputePosition())
+        {
+            //se for o dono do melhor global, randomizar alguma velocidade inicial para não ficar preso em velocidade nula
+            velocity = Random.onUnitSphere * maxSpeed;
+        }
         MoveNext();
     }
 
-    private void ComputePosition()
+    /// <summary>
+    /// Compara a posição atual com o melhor da partícula e também com o melhor global, substituindo quando necessário e verificando
+    /// se superou o melhor global.
+    /// </summary>
+    /// <returns>True caso supere o melhor global</returns>
+    private bool ComputePosition()
     {
         Vector3 current = transform.position;
         if (SwarmController.PositionBeats(current, particleBest))
             particleBest = current;
         if (controller.BeatsGlobalBest(particleBest))
+        {
             controller.GlobalBest = particleBest;
+            return true;
+        }
+        return false;
     }
 
     private void MoveNext()

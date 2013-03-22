@@ -63,6 +63,8 @@ public class SwarmController : MonoBehaviour
             GUI.Label(new Rect(0, 200, 100, 50), "Storm delay (" + formatedDelay + "s):");
             stormDelay = GUI.HorizontalSlider(new Rect(100, 200, 100, 50), stormDelay, MIN_STORM_DELAY, MAX_STORM_DELAY);
         }
+        if (showingResult)
+            ShowFinalMenu();
     }
 
     private void SetWaterHeight(float y)
@@ -138,9 +140,33 @@ public class SwarmController : MonoBehaviour
 
     public void ShowFinalResult()
     {
-        resultText.text = operationSuccessful ? "All the robots have been saved!" : "Failure: the robots where jammed!";
-        resultText.text += "\nPress ESC to quit";
+        resultText.text = operationSuccessful ? "All the robots have been saved!" : "Failure: the robots were jammed!";
         resultText.gameObject.SetActive(true);
         showingResult = true;
+    }
+
+    public void ShowFinalMenu()
+    {
+        int screenWidth = Screen.width;
+        int screenHeight = Screen.height;
+        int w = 200;
+        int h = 100;
+
+        int buttonWidth = 75;
+        int buttonHeight = 40;
+        Rect r = new Rect((screenWidth - w) / 2, (screenHeight - h) / 2 + 100, w, h);
+        GUI.Box(r, "");
+        GUI.BeginGroup(r);
+
+        float spacingH = (w - 2 * buttonWidth) / 3;
+        float spacingV = (h - buttonHeight) / 2;
+
+        if (GUI.Button(new Rect(spacingH, spacingV, buttonWidth, buttonHeight), "Quit"))
+            Application.Quit();
+
+        if (GUI.Button(new Rect(2 * spacingH + buttonWidth, spacingV, buttonWidth, buttonHeight), "Restart"))
+            Application.LoadLevel(Application.loadedLevel);
+
+        GUI.EndGroup();
     }
 }
